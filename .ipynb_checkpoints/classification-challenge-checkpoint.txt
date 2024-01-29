@@ -1,0 +1,343 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import tensorflow as tf\n",
+    "from tensorflow import keras\n",
+    "from tensorflow.keras.models import Sequential\n",
+    "from tensorflow.keras.preprocessing.image import ImageDataGenerator\n",
+    "from tensorflow.keras.preprocessing import image\n",
+    "from tensorflow.image import rgb_to_grayscale\n",
+    "from sklearn.metrics import classification_report\n",
+    "from sklearn.metrics import confusion_matrix\n",
+    "\n",
+    "from tensorflow.keras.callbacks import EarlyStopping\n",
+    "from tensorflow.keras import layers\n",
+    "\n",
+    "import matplotlib.pyplot as plt\n",
+    "import numpy\n",
+    "\n",
+    "import os\n",
+    "import cv2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Found 190 images belonging to 3 classes.\n",
+      "Found 61 images belonging to 3 classes.\n",
+      "Found 66 images belonging to 3 classes.\n"
+     ]
+    }
+   ],
+   "source": [
+    "# training_model = ImageDataGenerator(rescale=1/255, preprocessing_function=rgb_to_grayscale, validation_split=.25)\n",
+    "test_model = ImageDataGenerator(rescale=1/255, preprocessing_function=rgb_to_grayscale)\n",
+    "# Example configuration\n",
+    "training_model = ImageDataGenerator(rescale=1/255, preprocessing_function=rgb_to_grayscale, validation_split=0.25)\n",
+    "\n",
+    "train_data = training_model.flow_from_directory('./Covid19-dataset/train', color_mode='grayscale', subset='training', class_mode='categorical')\n",
+    "val_data = training_model.flow_from_directory('./Covid19-dataset/train', color_mode='grayscale', subset='validation', class_mode='categorical')\n",
+    "\n",
+    "\n",
+    "# train_data = training_model.flow_from_directory('./Covid19-dataset/train', color_mode='grayscale', subset='training')\n",
+    "# val_data = training_model.flow_from_directory('./Covid19-dataset/train', color_mode='grayscale', subset='validation')\n",
+    "test_data = test_model.flow_from_directory('./Covid19-dataset/test', color_mode='grayscale', class_mode='categorical')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(256, 256, 1)"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "train_data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "gpus = tf.config.experimental.list_physical_devices('GPU')\n",
+    "for gpu in gpus:\n",
+    "    tf.config.experimental.set_memory_growth(gpu, True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model = Sequential()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, InputLayer"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model.add(InputLayer(input_shape=(256, 256, 1)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model.add(Conv2D(16, 3, 1, activation='relu'))\n",
+    "model.add(MaxPooling2D())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model.add(Conv2D(32, 3, 1, activation='relu'))\n",
+    "model.add(MaxPooling2D())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model.add(Conv2D(16, 3, 1, activation='relu'))\n",
+    "model.add(MaxPooling2D())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model.add(Flatten())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model.add(Dense(256, activation='relu'))\n",
+    "model.add(Dense(3, activation='softmax'))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Model: \"sequential\"\n",
+      "_________________________________________________________________\n",
+      "Layer (type)                 Output Shape              Param #   \n",
+      "=================================================================\n",
+      "conv2d (Conv2D)              (None, 254, 254, 16)      160       \n",
+      "_________________________________________________________________\n",
+      "max_pooling2d (MaxPooling2D) (None, 127, 127, 16)      0         \n",
+      "_________________________________________________________________\n",
+      "conv2d_1 (Conv2D)            (None, 125, 125, 32)      4640      \n",
+      "_________________________________________________________________\n",
+      "max_pooling2d_1 (MaxPooling2 (None, 62, 62, 32)        0         \n",
+      "_________________________________________________________________\n",
+      "conv2d_2 (Conv2D)            (None, 60, 60, 16)        4624      \n",
+      "_________________________________________________________________\n",
+      "max_pooling2d_2 (MaxPooling2 (None, 30, 30, 16)        0         \n",
+      "_________________________________________________________________\n",
+      "flatten (Flatten)            (None, 14400)             0         \n",
+      "_________________________________________________________________\n",
+      "dense (Dense)                (None, 256)               3686656   \n",
+      "_________________________________________________________________\n",
+      "dense_1 (Dense)              (None, 3)                 771       \n",
+      "=================================================================\n",
+      "Total params: 3,696,851\n",
+      "Trainable params: 3,696,851\n",
+      "Non-trainable params: 0\n",
+      "_________________________________________________________________\n"
+     ]
+    }
+   ],
+   "source": [
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "log = 'logs/'\n",
+    "callback = tf.keras.callbacks.TensorBoard(log_dir=log)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "InvalidArgumentError",
+     "evalue": "In[0] mismatch In[1] shape: 1 vs. 3: [65536,1] [3,1] 0 0 [Op:MatMul]",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[1;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[1;31mInvalidArgumentError\u001b[0m                      Traceback (most recent call last)",
+      "Cell \u001b[1;32mIn[15], line 1\u001b[0m\n\u001b[1;32m----> 1\u001b[0m hist \u001b[38;5;241m=\u001b[39m \u001b[43mmodel\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mfit\u001b[49m\u001b[43m(\u001b[49m\u001b[43mtrain_data\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mepochs\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[38;5;241;43m20\u001b[39;49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mvalidation_data\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mval_data\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mcallbacks\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43m[\u001b[49m\u001b[43mcallback\u001b[49m\u001b[43m]\u001b[49m\u001b[43m)\u001b[49m\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\keras\\engine\\training.py:1143\u001b[0m, in \u001b[0;36mModel.fit\u001b[1;34m(self, x, y, batch_size, epochs, verbose, callbacks, validation_split, validation_data, shuffle, class_weight, sample_weight, initial_epoch, steps_per_epoch, validation_steps, validation_batch_size, validation_freq, max_queue_size, workers, use_multiprocessing)\u001b[0m\n\u001b[0;32m   1137\u001b[0m   \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_cluster_coordinator \u001b[38;5;241m=\u001b[39m cluster_coordinator\u001b[38;5;241m.\u001b[39mClusterCoordinator(\n\u001b[0;32m   1138\u001b[0m       \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mdistribute_strategy)\n\u001b[0;32m   1140\u001b[0m \u001b[38;5;28;01mwith\u001b[39;00m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mdistribute_strategy\u001b[38;5;241m.\u001b[39mscope(), \\\n\u001b[0;32m   1141\u001b[0m      training_utils\u001b[38;5;241m.\u001b[39mRespectCompiledTrainableState(\u001b[38;5;28mself\u001b[39m):\n\u001b[0;32m   1142\u001b[0m   \u001b[38;5;66;03m# Creates a `tf.data.Dataset` and handles batch and epoch iteration.\u001b[39;00m\n\u001b[1;32m-> 1143\u001b[0m   data_handler \u001b[38;5;241m=\u001b[39m \u001b[43mdata_adapter\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mget_data_handler\u001b[49m\u001b[43m(\u001b[49m\n\u001b[0;32m   1144\u001b[0m \u001b[43m      \u001b[49m\u001b[43mx\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mx\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1145\u001b[0m \u001b[43m      \u001b[49m\u001b[43my\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43my\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1146\u001b[0m \u001b[43m      \u001b[49m\u001b[43msample_weight\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43msample_weight\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1147\u001b[0m \u001b[43m      \u001b[49m\u001b[43mbatch_size\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mbatch_size\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1148\u001b[0m \u001b[43m      \u001b[49m\u001b[43msteps_per_epoch\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43msteps_per_epoch\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1149\u001b[0m \u001b[43m      \u001b[49m\u001b[43minitial_epoch\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43minitial_epoch\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1150\u001b[0m \u001b[43m      \u001b[49m\u001b[43mepochs\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mepochs\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1151\u001b[0m \u001b[43m      \u001b[49m\u001b[43mshuffle\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mshuffle\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1152\u001b[0m \u001b[43m      \u001b[49m\u001b[43mclass_weight\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mclass_weight\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1153\u001b[0m \u001b[43m      \u001b[49m\u001b[43mmax_queue_size\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mmax_queue_size\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1154\u001b[0m \u001b[43m      \u001b[49m\u001b[43mworkers\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mworkers\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1155\u001b[0m \u001b[43m      \u001b[49m\u001b[43muse_multiprocessing\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43muse_multiprocessing\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1156\u001b[0m \u001b[43m      \u001b[49m\u001b[43mmodel\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[38;5;28;43mself\u001b[39;49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1157\u001b[0m \u001b[43m      \u001b[49m\u001b[43msteps_per_execution\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[38;5;28;43mself\u001b[39;49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43m_steps_per_execution\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m   1159\u001b[0m   \u001b[38;5;66;03m# Container that configures and calls `tf.keras.Callback`s.\u001b[39;00m\n\u001b[0;32m   1160\u001b[0m   \u001b[38;5;28;01mif\u001b[39;00m \u001b[38;5;129;01mnot\u001b[39;00m \u001b[38;5;28misinstance\u001b[39m(callbacks, callbacks_module\u001b[38;5;241m.\u001b[39mCallbackList):\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\keras\\engine\\data_adapter.py:1400\u001b[0m, in \u001b[0;36mget_data_handler\u001b[1;34m(*args, **kwargs)\u001b[0m\n\u001b[0;32m   1398\u001b[0m \u001b[38;5;28;01mif\u001b[39;00m \u001b[38;5;28mgetattr\u001b[39m(kwargs[\u001b[38;5;124m\"\u001b[39m\u001b[38;5;124mmodel\u001b[39m\u001b[38;5;124m\"\u001b[39m], \u001b[38;5;124m\"\u001b[39m\u001b[38;5;124m_cluster_coordinator\u001b[39m\u001b[38;5;124m\"\u001b[39m, \u001b[38;5;28;01mNone\u001b[39;00m):\n\u001b[0;32m   1399\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m _ClusterCoordinatorDataHandler(\u001b[38;5;241m*\u001b[39margs, \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m*\u001b[39mkwargs)\n\u001b[1;32m-> 1400\u001b[0m \u001b[38;5;28;01mreturn\u001b[39;00m DataHandler(\u001b[38;5;241m*\u001b[39margs, \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m*\u001b[39mkwargs)\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\keras\\engine\\data_adapter.py:1155\u001b[0m, in \u001b[0;36mDataHandler.__init__\u001b[1;34m(self, x, y, sample_weight, batch_size, steps_per_epoch, initial_epoch, epochs, shuffle, class_weight, max_queue_size, workers, use_multiprocessing, model, steps_per_execution, distribute)\u001b[0m\n\u001b[0;32m   1152\u001b[0m   \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_steps_per_execution_value \u001b[38;5;241m=\u001b[39m steps_per_execution\u001b[38;5;241m.\u001b[39mnumpy()\u001b[38;5;241m.\u001b[39mitem()\n\u001b[0;32m   1154\u001b[0m adapter_cls \u001b[38;5;241m=\u001b[39m select_data_adapter(x, y)\n\u001b[1;32m-> 1155\u001b[0m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_adapter \u001b[38;5;241m=\u001b[39m \u001b[43madapter_cls\u001b[49m\u001b[43m(\u001b[49m\n\u001b[0;32m   1156\u001b[0m \u001b[43m    \u001b[49m\u001b[43mx\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1157\u001b[0m \u001b[43m    \u001b[49m\u001b[43my\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1158\u001b[0m \u001b[43m    \u001b[49m\u001b[43mbatch_size\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mbatch_size\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1159\u001b[0m \u001b[43m    \u001b[49m\u001b[43msteps\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43msteps_per_epoch\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1160\u001b[0m \u001b[43m    \u001b[49m\u001b[43mepochs\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mepochs\u001b[49m\u001b[43m \u001b[49m\u001b[38;5;241;43m-\u001b[39;49m\u001b[43m \u001b[49m\u001b[43minitial_epoch\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1161\u001b[0m \u001b[43m    \u001b[49m\u001b[43msample_weights\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43msample_weight\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1162\u001b[0m \u001b[43m    \u001b[49m\u001b[43mshuffle\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mshuffle\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1163\u001b[0m \u001b[43m    \u001b[49m\u001b[43mmax_queue_size\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mmax_queue_size\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1164\u001b[0m \u001b[43m    \u001b[49m\u001b[43mworkers\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mworkers\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1165\u001b[0m \u001b[43m    \u001b[49m\u001b[43muse_multiprocessing\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43muse_multiprocessing\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1166\u001b[0m \u001b[43m    \u001b[49m\u001b[43mdistribution_strategy\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mds_context\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mget_strategy\u001b[49m\u001b[43m(\u001b[49m\u001b[43m)\u001b[49m\u001b[43m,\u001b[49m\n\u001b[0;32m   1167\u001b[0m \u001b[43m    \u001b[49m\u001b[43mmodel\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mmodel\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m   1169\u001b[0m strategy \u001b[38;5;241m=\u001b[39m ds_context\u001b[38;5;241m.\u001b[39mget_strategy()\n\u001b[0;32m   1171\u001b[0m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_current_step \u001b[38;5;241m=\u001b[39m \u001b[38;5;241m0\u001b[39m\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\keras\\engine\\data_adapter.py:934\u001b[0m, in \u001b[0;36mKerasSequenceAdapter.__init__\u001b[1;34m(self, x, y, sample_weights, shuffle, workers, use_multiprocessing, max_queue_size, model, **kwargs)\u001b[0m\n\u001b[0;32m    932\u001b[0m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_keras_sequence \u001b[38;5;241m=\u001b[39m x\n\u001b[0;32m    933\u001b[0m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_enqueuer \u001b[38;5;241m=\u001b[39m \u001b[38;5;28;01mNone\u001b[39;00m\n\u001b[1;32m--> 934\u001b[0m \u001b[38;5;28msuper\u001b[39m(KerasSequenceAdapter, \u001b[38;5;28mself\u001b[39m)\u001b[38;5;241m.\u001b[39m\u001b[38;5;21m__init__\u001b[39m(\n\u001b[0;32m    935\u001b[0m     x,\n\u001b[0;32m    936\u001b[0m     shuffle\u001b[38;5;241m=\u001b[39m\u001b[38;5;28;01mFalse\u001b[39;00m,  \u001b[38;5;66;03m# Shuffle is handed in the _make_callable override.\u001b[39;00m\n\u001b[0;32m    937\u001b[0m     workers\u001b[38;5;241m=\u001b[39mworkers,\n\u001b[0;32m    938\u001b[0m     use_multiprocessing\u001b[38;5;241m=\u001b[39muse_multiprocessing,\n\u001b[0;32m    939\u001b[0m     max_queue_size\u001b[38;5;241m=\u001b[39mmax_queue_size,\n\u001b[0;32m    940\u001b[0m     model\u001b[38;5;241m=\u001b[39mmodel,\n\u001b[0;32m    941\u001b[0m     \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m*\u001b[39mkwargs)\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\keras\\engine\\data_adapter.py:811\u001b[0m, in \u001b[0;36mGeneratorDataAdapter.__init__\u001b[1;34m(self, x, y, sample_weights, workers, use_multiprocessing, max_queue_size, model, **kwargs)\u001b[0m\n\u001b[0;32m    807\u001b[0m \u001b[38;5;28msuper\u001b[39m(GeneratorDataAdapter, \u001b[38;5;28mself\u001b[39m)\u001b[38;5;241m.\u001b[39m\u001b[38;5;21m__init__\u001b[39m(x, y, \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m*\u001b[39mkwargs)\n\u001b[0;32m    809\u001b[0m \u001b[38;5;66;03m# Since we have to know the dtype of the python generator when we build the\u001b[39;00m\n\u001b[0;32m    810\u001b[0m \u001b[38;5;66;03m# dataset, we have to look at a batch to infer the structure.\u001b[39;00m\n\u001b[1;32m--> 811\u001b[0m peek, x \u001b[38;5;241m=\u001b[39m \u001b[38;5;28;43mself\u001b[39;49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43m_peek_and_restore\u001b[49m\u001b[43m(\u001b[49m\u001b[43mx\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m    812\u001b[0m peek \u001b[38;5;241m=\u001b[39m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_standardize_batch(peek)\n\u001b[0;32m    813\u001b[0m peek \u001b[38;5;241m=\u001b[39m _process_tensorlike(peek)\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\keras\\engine\\data_adapter.py:945\u001b[0m, in \u001b[0;36mKerasSequenceAdapter._peek_and_restore\u001b[1;34m(x)\u001b[0m\n\u001b[0;32m    943\u001b[0m \u001b[38;5;129m@staticmethod\u001b[39m\n\u001b[0;32m    944\u001b[0m \u001b[38;5;28;01mdef\u001b[39;00m \u001b[38;5;21m_peek_and_restore\u001b[39m(x):\n\u001b[1;32m--> 945\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m \u001b[43mx\u001b[49m\u001b[43m[\u001b[49m\u001b[38;5;241;43m0\u001b[39;49m\u001b[43m]\u001b[49m, x\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\keras_preprocessing\\image\\iterator.py:65\u001b[0m, in \u001b[0;36mIterator.__getitem__\u001b[1;34m(self, idx)\u001b[0m\n\u001b[0;32m     62\u001b[0m     \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39m_set_index_array()\n\u001b[0;32m     63\u001b[0m index_array \u001b[38;5;241m=\u001b[39m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mindex_array[\u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mbatch_size \u001b[38;5;241m*\u001b[39m idx:\n\u001b[0;32m     64\u001b[0m                                \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mbatch_size \u001b[38;5;241m*\u001b[39m (idx \u001b[38;5;241m+\u001b[39m \u001b[38;5;241m1\u001b[39m)]\n\u001b[1;32m---> 65\u001b[0m \u001b[38;5;28;01mreturn\u001b[39;00m \u001b[38;5;28;43mself\u001b[39;49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43m_get_batches_of_transformed_samples\u001b[49m\u001b[43m(\u001b[49m\u001b[43mindex_array\u001b[49m\u001b[43m)\u001b[49m\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\keras_preprocessing\\image\\iterator.py:239\u001b[0m, in \u001b[0;36mBatchFromFilesMixin._get_batches_of_transformed_samples\u001b[1;34m(self, index_array)\u001b[0m\n\u001b[0;32m    237\u001b[0m         params \u001b[38;5;241m=\u001b[39m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mimage_data_generator\u001b[38;5;241m.\u001b[39mget_random_transform(x\u001b[38;5;241m.\u001b[39mshape)\n\u001b[0;32m    238\u001b[0m         x \u001b[38;5;241m=\u001b[39m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mimage_data_generator\u001b[38;5;241m.\u001b[39mapply_transform(x, params)\n\u001b[1;32m--> 239\u001b[0m         x \u001b[38;5;241m=\u001b[39m \u001b[38;5;28;43mself\u001b[39;49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mimage_data_generator\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mstandardize\u001b[49m\u001b[43m(\u001b[49m\u001b[43mx\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m    240\u001b[0m     batch_x[i] \u001b[38;5;241m=\u001b[39m x\n\u001b[0;32m    241\u001b[0m \u001b[38;5;66;03m# optionally save augmented images to disk for debugging purposes\u001b[39;00m\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\keras_preprocessing\\image\\image_data_generator.py:708\u001b[0m, in \u001b[0;36mImageDataGenerator.standardize\u001b[1;34m(self, x)\u001b[0m\n\u001b[0;32m    691\u001b[0m \u001b[38;5;250m\u001b[39m\u001b[38;5;124;03m\"\"\"Applies the normalization configuration in-place to a batch of inputs.\u001b[39;00m\n\u001b[0;32m    692\u001b[0m \n\u001b[0;32m    693\u001b[0m \u001b[38;5;124;03m`x` is changed in-place since the function is mainly used internally\u001b[39;00m\n\u001b[1;32m   (...)\u001b[0m\n\u001b[0;32m    705\u001b[0m \u001b[38;5;124;03m    The inputs, normalized.\u001b[39;00m\n\u001b[0;32m    706\u001b[0m \u001b[38;5;124;03m\"\"\"\u001b[39;00m\n\u001b[0;32m    707\u001b[0m \u001b[38;5;28;01mif\u001b[39;00m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mpreprocessing_function:\n\u001b[1;32m--> 708\u001b[0m     x \u001b[38;5;241m=\u001b[39m \u001b[38;5;28;43mself\u001b[39;49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mpreprocessing_function\u001b[49m\u001b[43m(\u001b[49m\u001b[43mx\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m    709\u001b[0m \u001b[38;5;28;01mif\u001b[39;00m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mrescale:\n\u001b[0;32m    710\u001b[0m     x \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m=\u001b[39m \u001b[38;5;28mself\u001b[39m\u001b[38;5;241m.\u001b[39mrescale\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\util\\dispatch.py:206\u001b[0m, in \u001b[0;36madd_dispatch_support.<locals>.wrapper\u001b[1;34m(*args, **kwargs)\u001b[0m\n\u001b[0;32m    204\u001b[0m \u001b[38;5;250m\u001b[39m\u001b[38;5;124;03m\"\"\"Call target, and fall back on dispatchers if there is a TypeError.\"\"\"\u001b[39;00m\n\u001b[0;32m    205\u001b[0m \u001b[38;5;28;01mtry\u001b[39;00m:\n\u001b[1;32m--> 206\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m target(\u001b[38;5;241m*\u001b[39margs, \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m*\u001b[39mkwargs)\n\u001b[0;32m    207\u001b[0m \u001b[38;5;28;01mexcept\u001b[39;00m (\u001b[38;5;167;01mTypeError\u001b[39;00m, \u001b[38;5;167;01mValueError\u001b[39;00m):\n\u001b[0;32m    208\u001b[0m   \u001b[38;5;66;03m# Note: convert_to_eager_tensor currently raises a ValueError, not a\u001b[39;00m\n\u001b[0;32m    209\u001b[0m   \u001b[38;5;66;03m# TypeError, when given unexpected types.  So we need to catch both.\u001b[39;00m\n\u001b[0;32m    210\u001b[0m   result \u001b[38;5;241m=\u001b[39m dispatch(wrapper, args, kwargs)\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\ops\\image_ops_impl.py:2512\u001b[0m, in \u001b[0;36mrgb_to_grayscale\u001b[1;34m(images, name)\u001b[0m\n\u001b[0;32m   2509\u001b[0m \u001b[38;5;66;03m# Reference for converting between RGB and grayscale.\u001b[39;00m\n\u001b[0;32m   2510\u001b[0m \u001b[38;5;66;03m# https://en.wikipedia.org/wiki/Luma_%28video%29\u001b[39;00m\n\u001b[0;32m   2511\u001b[0m rgb_weights \u001b[38;5;241m=\u001b[39m [\u001b[38;5;241m0.2989\u001b[39m, \u001b[38;5;241m0.5870\u001b[39m, \u001b[38;5;241m0.1140\u001b[39m]\n\u001b[1;32m-> 2512\u001b[0m gray_float \u001b[38;5;241m=\u001b[39m \u001b[43mmath_ops\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mtensordot\u001b[49m\u001b[43m(\u001b[49m\u001b[43mflt_image\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mrgb_weights\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43m[\u001b[49m\u001b[38;5;241;43m-\u001b[39;49m\u001b[38;5;241;43m1\u001b[39;49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[38;5;241;43m-\u001b[39;49m\u001b[38;5;241;43m1\u001b[39;49m\u001b[43m]\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m   2513\u001b[0m gray_float \u001b[38;5;241m=\u001b[39m array_ops\u001b[38;5;241m.\u001b[39mexpand_dims(gray_float, \u001b[38;5;241m-\u001b[39m\u001b[38;5;241m1\u001b[39m)\n\u001b[0;32m   2514\u001b[0m \u001b[38;5;28;01mreturn\u001b[39;00m convert_image_dtype(gray_float, orig_dtype, name\u001b[38;5;241m=\u001b[39mname)\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\util\\dispatch.py:206\u001b[0m, in \u001b[0;36madd_dispatch_support.<locals>.wrapper\u001b[1;34m(*args, **kwargs)\u001b[0m\n\u001b[0;32m    204\u001b[0m \u001b[38;5;250m\u001b[39m\u001b[38;5;124;03m\"\"\"Call target, and fall back on dispatchers if there is a TypeError.\"\"\"\u001b[39;00m\n\u001b[0;32m    205\u001b[0m \u001b[38;5;28;01mtry\u001b[39;00m:\n\u001b[1;32m--> 206\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m target(\u001b[38;5;241m*\u001b[39margs, \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m*\u001b[39mkwargs)\n\u001b[0;32m    207\u001b[0m \u001b[38;5;28;01mexcept\u001b[39;00m (\u001b[38;5;167;01mTypeError\u001b[39;00m, \u001b[38;5;167;01mValueError\u001b[39;00m):\n\u001b[0;32m    208\u001b[0m   \u001b[38;5;66;03m# Note: convert_to_eager_tensor currently raises a ValueError, not a\u001b[39;00m\n\u001b[0;32m    209\u001b[0m   \u001b[38;5;66;03m# TypeError, when given unexpected types.  So we need to catch both.\u001b[39;00m\n\u001b[0;32m    210\u001b[0m   result \u001b[38;5;241m=\u001b[39m dispatch(wrapper, args, kwargs)\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\ops\\math_ops.py:5042\u001b[0m, in \u001b[0;36mtensordot\u001b[1;34m(a, b, axes, name)\u001b[0m\n\u001b[0;32m   5039\u001b[0m a_reshape, a_free_dims, a_free_dims_static \u001b[38;5;241m=\u001b[39m _tensordot_reshape(a, a_axes)\n\u001b[0;32m   5040\u001b[0m b_reshape, b_free_dims, b_free_dims_static \u001b[38;5;241m=\u001b[39m _tensordot_reshape(\n\u001b[0;32m   5041\u001b[0m     b, b_axes, \u001b[38;5;28;01mTrue\u001b[39;00m)\n\u001b[1;32m-> 5042\u001b[0m ab_matmul \u001b[38;5;241m=\u001b[39m \u001b[43mmatmul\u001b[49m\u001b[43m(\u001b[49m\u001b[43ma_reshape\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mb_reshape\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m   5043\u001b[0m \u001b[38;5;28;01mif\u001b[39;00m \u001b[38;5;28misinstance\u001b[39m(a_free_dims, \u001b[38;5;28mlist\u001b[39m) \u001b[38;5;129;01mand\u001b[39;00m \u001b[38;5;28misinstance\u001b[39m(b_free_dims, \u001b[38;5;28mlist\u001b[39m):\n\u001b[0;32m   5044\u001b[0m   \u001b[38;5;28;01mif\u001b[39;00m (ab_matmul\u001b[38;5;241m.\u001b[39mget_shape()\u001b[38;5;241m.\u001b[39mis_fully_defined() \u001b[38;5;129;01mand\u001b[39;00m\n\u001b[0;32m   5045\u001b[0m       ab_matmul\u001b[38;5;241m.\u001b[39mget_shape()\u001b[38;5;241m.\u001b[39mas_list() \u001b[38;5;241m==\u001b[39m a_free_dims \u001b[38;5;241m+\u001b[39m b_free_dims):\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\util\\dispatch.py:206\u001b[0m, in \u001b[0;36madd_dispatch_support.<locals>.wrapper\u001b[1;34m(*args, **kwargs)\u001b[0m\n\u001b[0;32m    204\u001b[0m \u001b[38;5;250m\u001b[39m\u001b[38;5;124;03m\"\"\"Call target, and fall back on dispatchers if there is a TypeError.\"\"\"\u001b[39;00m\n\u001b[0;32m    205\u001b[0m \u001b[38;5;28;01mtry\u001b[39;00m:\n\u001b[1;32m--> 206\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m target(\u001b[38;5;241m*\u001b[39margs, \u001b[38;5;241m*\u001b[39m\u001b[38;5;241m*\u001b[39mkwargs)\n\u001b[0;32m    207\u001b[0m \u001b[38;5;28;01mexcept\u001b[39;00m (\u001b[38;5;167;01mTypeError\u001b[39;00m, \u001b[38;5;167;01mValueError\u001b[39;00m):\n\u001b[0;32m    208\u001b[0m   \u001b[38;5;66;03m# Note: convert_to_eager_tensor currently raises a ValueError, not a\u001b[39;00m\n\u001b[0;32m    209\u001b[0m   \u001b[38;5;66;03m# TypeError, when given unexpected types.  So we need to catch both.\u001b[39;00m\n\u001b[0;32m    210\u001b[0m   result \u001b[38;5;241m=\u001b[39m dispatch(wrapper, args, kwargs)\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\ops\\math_ops.py:3654\u001b[0m, in \u001b[0;36mmatmul\u001b[1;34m(a, b, transpose_a, transpose_b, adjoint_a, adjoint_b, a_is_sparse, b_is_sparse, output_type, name)\u001b[0m\n\u001b[0;32m   3651\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m gen_math_ops\u001b[38;5;241m.\u001b[39mbatch_mat_mul_v3(\n\u001b[0;32m   3652\u001b[0m       a, b, adj_x\u001b[38;5;241m=\u001b[39madjoint_a, adj_y\u001b[38;5;241m=\u001b[39madjoint_b, Tout\u001b[38;5;241m=\u001b[39moutput_type, name\u001b[38;5;241m=\u001b[39mname)\n\u001b[0;32m   3653\u001b[0m \u001b[38;5;28;01melse\u001b[39;00m:\n\u001b[1;32m-> 3654\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m \u001b[43mgen_math_ops\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mmat_mul\u001b[49m\u001b[43m(\u001b[49m\n\u001b[0;32m   3655\u001b[0m \u001b[43m      \u001b[49m\u001b[43ma\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mb\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mtranspose_a\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mtranspose_a\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mtranspose_b\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mtranspose_b\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mname\u001b[49m\u001b[38;5;241;43m=\u001b[39;49m\u001b[43mname\u001b[49m\u001b[43m)\u001b[49m\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\ops\\gen_math_ops.py:5695\u001b[0m, in \u001b[0;36mmat_mul\u001b[1;34m(a, b, transpose_a, transpose_b, name)\u001b[0m\n\u001b[0;32m   5693\u001b[0m   \u001b[38;5;28;01mreturn\u001b[39;00m _result\n\u001b[0;32m   5694\u001b[0m \u001b[38;5;28;01mexcept\u001b[39;00m _core\u001b[38;5;241m.\u001b[39m_NotOkStatusException \u001b[38;5;28;01mas\u001b[39;00m e:\n\u001b[1;32m-> 5695\u001b[0m   \u001b[43m_ops\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mraise_from_not_ok_status\u001b[49m\u001b[43m(\u001b[49m\u001b[43me\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mname\u001b[49m\u001b[43m)\u001b[49m\n\u001b[0;32m   5696\u001b[0m \u001b[38;5;28;01mexcept\u001b[39;00m _core\u001b[38;5;241m.\u001b[39m_FallbackException:\n\u001b[0;32m   5697\u001b[0m   \u001b[38;5;28;01mpass\u001b[39;00m\n",
+      "File \u001b[1;32m~\\anaconda3\\envs\\tf-gpu\\lib\\site-packages\\tensorflow\\python\\framework\\ops.py:6941\u001b[0m, in \u001b[0;36mraise_from_not_ok_status\u001b[1;34m(e, name)\u001b[0m\n\u001b[0;32m   6939\u001b[0m message \u001b[38;5;241m=\u001b[39m e\u001b[38;5;241m.\u001b[39mmessage \u001b[38;5;241m+\u001b[39m (\u001b[38;5;124m\"\u001b[39m\u001b[38;5;124m name: \u001b[39m\u001b[38;5;124m\"\u001b[39m \u001b[38;5;241m+\u001b[39m name \u001b[38;5;28;01mif\u001b[39;00m name \u001b[38;5;129;01mis\u001b[39;00m \u001b[38;5;129;01mnot\u001b[39;00m \u001b[38;5;28;01mNone\u001b[39;00m \u001b[38;5;28;01melse\u001b[39;00m \u001b[38;5;124m\"\u001b[39m\u001b[38;5;124m\"\u001b[39m)\n\u001b[0;32m   6940\u001b[0m \u001b[38;5;66;03m# pylint: disable=protected-access\u001b[39;00m\n\u001b[1;32m-> 6941\u001b[0m \u001b[43msix\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mraise_from\u001b[49m\u001b[43m(\u001b[49m\u001b[43mcore\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43m_status_to_exception\u001b[49m\u001b[43m(\u001b[49m\u001b[43me\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mcode\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[43mmessage\u001b[49m\u001b[43m)\u001b[49m\u001b[43m,\u001b[49m\u001b[43m \u001b[49m\u001b[38;5;28;43;01mNone\u001b[39;49;00m\u001b[43m)\u001b[49m\n",
+      "File \u001b[1;32m<string>:3\u001b[0m, in \u001b[0;36mraise_from\u001b[1;34m(value, from_value)\u001b[0m\n",
+      "\u001b[1;31mInvalidArgumentError\u001b[0m: In[0] mismatch In[1] shape: 1 vs. 3: [65536,1] [3,1] 0 0 [Op:MatMul]"
+     ]
+    }
+   ],
+   "source": [
+    "hist = model.fit(train_data, epochs=20, validation_data=val_data, callbacks=[callback])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.18"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
